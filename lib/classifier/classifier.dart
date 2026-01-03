@@ -105,7 +105,6 @@ class PlantDiseaseClassifier {
     debugPrint("🌿 Strict Plant Ratio: ${(plantRatio * 100).toStringAsFixed(1)}%");
 
     // SYARAT LOLOS: Minimal 30% dari area tengah harus terdeteksi sebagai "Unsur Daun"
-    // Keyboard ungu rasionya bakal 0% atau sangat kecil.
     return plantRatio > 0.30;
   }
 
