@@ -131,7 +131,7 @@ dependencies:
 
 1. **Clone the repository**
 ```bash
-   git clone https://github.com/yourusername/leaf-sense.git
+   git clone https://github.com/dikapradnyanta/leaf-sense.git
    cd leaf-sense
 ```
 
@@ -322,8 +322,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👨‍💻 Author
 
 **Your Name**
-- GitHub: [@yourusername](https://github.com/yourusername)
-- Email: your.email@example.com
+- GitHub: [@dikapradnyanta](https://github.com/dikapradnyanta)
+- Email: ikomangdikapradnyanta@gmail.com
 
 ---
 
@@ -340,14 +340,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 If you encounter any issues or have questions:
 
-1. Check the [Issues](https://github.com/yourusername/leaf-sense/issues) page
+1. Check the [Issues](https://github.com/dikapradnyanta/leaf-sense/issues) page
 2. Open a new issue with detailed description
-3. Contact via email: your.email@example.com
+3. Contact via email: ikomangdikapradnyanta@gmail.com
 
 ---
 
 <p align="center">
-  Made with ❤️ and 🌱 by [Your Name]
+  Made with ❤️ and 🌱 by [Dika Pradnyanta]
 </p>
 
 <p align="center">
