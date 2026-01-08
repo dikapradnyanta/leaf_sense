@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../database/database_helper.dart';
 import '../database/history_model.dart';
 import '../camera/result_page.dart';
+import '../classifier/rule.dart'; // ✅ IMPORT INI UNTUK MAPPING
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -117,6 +118,25 @@ class _HistoryPageState extends State<HistoryPage> {
     }
   }
 
+  // ✅ FUNGSI HELPER: Generate diseaseNameId dari diseaseName
+  String _getDiseaseNameId(String diseaseName) {
+    // Cari di mapping diseaseNames untuk dapat index
+    int? classId;
+    diseaseNames.forEach((key, value) {
+      if (value == diseaseName) {
+        classId = key;
+      }
+    });
+
+    // Jika ketemu, ambil terjemahan Indonesia
+    if (classId != null && diseaseNamesIndonesian.containsKey(classId)) {
+      return diseaseNamesIndonesian[classId]!;
+    }
+
+    // Fallback jika tidak ketemu
+    return "Tidak Diketahui";
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -221,6 +241,7 @@ class _HistoryPageState extends State<HistoryPage> {
                 builder: (context) => ResultPage(
                   imagePath: item.imagePath,
                   diseaseName: item.diseaseName,
+                  diseaseNameId: _getDiseaseNameId(item.diseaseName), // ✅ GENERATE DARI DISEASENAME
                   category: item.category,
                   confidence: item.confidence,
                   recommendation: item.recommendation,

@@ -14,6 +14,7 @@ import '../services/settings_service.dart';
 class ResultPage extends StatefulWidget {
   final String imagePath;
   final String diseaseName; // Nama penyakit (Early Blight, Bacterial Spot, dll)
+  final String diseaseNameId; // Terjemahan Indonesia (Hawar Awal, Bercak Bakteri, dll)
   final String category; // Kategori kondisi (Healthy, Bacterial Infection, dll)
   final double confidence;
   final String recommendation;
@@ -23,6 +24,7 @@ class ResultPage extends StatefulWidget {
     super.key,
     required this.imagePath,
     required this.diseaseName,
+    required this.diseaseNameId,
     required this.category,
     required this.confidence,
     required this.recommendation,
@@ -201,9 +203,11 @@ class _ResultPageState extends State<ResultPage> {
 
                               const SizedBox(height: 16),
 
-                              // KATEGORI KONDISI (5 kategori sederhana untuk UI)
+                              // HEADLINE UTAMA = NAMA PENYAKIT SPESIFIK (English)
                               Text(
-                                widget.category,
+                                widget.category == "Unknown"
+                                    ? "No Object were Detected"
+                                    : widget.diseaseName,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 32,
@@ -212,6 +216,21 @@ class _ResultPageState extends State<ResultPage> {
                                   height: 1.1,
                                 ),
                               ),
+
+                              // SUB-TEXT TERJEMAHAN INDONESIA
+                              if (widget.category != "Unknown" &&
+                                  widget.diseaseNameId != "Sehat") ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  widget.diseaseNameId,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
 
                               const SizedBox(height: 4),
 
@@ -261,54 +280,9 @@ class _ResultPageState extends State<ResultPage> {
 
               const SizedBox(height: 30),
 
-              // INFO DETAIL PENYAKIT (Hanya muncul jika bukan Unknown)
-              if (widget.diseaseName != "Unknown")
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline, color: Colors.grey[700], size: 20),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Terdeteksi:",
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              widget.diseaseName,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-              if (widget.diseaseName != "Unknown") const SizedBox(height: 16),
-
               // REKOMENDASI PERAWATAN
               Text(
-                widget.confidence < 50.0
-                    ? 'Rekomendasi Umum (Confidence Rendah)'
-                    : 'Rekomendasi Penanganan',
+                'Rekomendasi Penanganan',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -347,8 +321,8 @@ class _ResultPageState extends State<ResultPage> {
                 ),
               ),
 
-              // Tambahan warning jika confidence rendah
-              if (widget.confidence < 50.0) ...[
+              // Tambahan warning jika confidence rendah (KECUALI Unknown)
+              if (widget.confidence < 50.0 && widget.category != "Unknown") ...[
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(12),

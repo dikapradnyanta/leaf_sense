@@ -43,7 +43,7 @@ const Map<int, String> categoryMapping = {
 
 // Nama Penyakit untuk Display (Tanpa Nama Tanaman)
 const Map<int, String> diseaseNames = {
-  -1: "Unknown",
+  -1: "No Object were Detected",
   0: "Bacterial Spot",
   1: "Healthy",
   2: "Early Blight",
@@ -59,6 +59,26 @@ const Map<int, String> diseaseNames = {
   12: "Yellow Leaf Curl Virus",
   13: "Mosaic Virus",
   14: "Healthy",
+};
+
+// Terjemahan Bahasa Indonesia untuk Nama Penyakit
+const Map<int, String> diseaseNamesIndonesian = {
+  -1: "Tidak Ada Objek Terdeteksi",
+  0: "Bercak Bakteri",
+  1: "Sehat",
+  2: "Hawar Awal",
+  3: "Hawar Akhir",
+  4: "Sehat",
+  5: "Bercak Bakteri",
+  6: "Hawar Awal",
+  7: "Hawar Akhir",
+  8: "Jamur Daun",
+  9: "Bercak Daun Septoria",
+  10: "Tungau Laba-laba",
+  11: "Bercak Target",
+  12: "Virus Keriting Kuning",
+  13: "Virus Mosaik",
+  14: "Sehat",
 };
 
 // Warna per Kategori
@@ -152,7 +172,7 @@ Penanganan Segera:
 """,
 
   3: """
-⚠️ KONDISI KRITIS - Tindakan Darurat!
+⚠ KONDISI KRITIS 
 
 Penanganan Darurat:
 • Segera pangkas dan musnahkan semua bagian tanaman yang terinfeksi
@@ -175,7 +195,7 @@ Penanganan Segera:
 """,
 
   7: """
-⚠️ KONDISI KRITIS - Tindakan Darurat!
+⚠ KONDISI KRITIS
 
 Penanganan Darurat:
 • Penyakit ini sangat agresif - bertindak dalam 24-48 jam!
@@ -354,6 +374,7 @@ Penanganan Umum:
 Map<String, dynamic> getRecommendation(int classId, double confidence) {
   final fullName = classNames[classId] ?? "Unknown";
   final diseaseName = diseaseNames[classId] ?? "Unknown";
+  final diseaseNameId = diseaseNamesIndonesian[classId] ?? "Tidak Diketahui";
   final category = categoryMapping[classId] ?? "Unknown";
   final color = categoryColors[category] ?? 0xFF9E9E9E;
 
@@ -373,6 +394,7 @@ Map<String, dynamic> getRecommendation(int classId, double confidence) {
   return {
     "fullName": fullName, // Nama lengkap dengan tanaman (untuk log/database)
     "diseaseName": diseaseName, // Nama penyakit saja (untuk display)
+    "diseaseNameId": diseaseNameId, // Terjemahan Bahasa Indonesia
     "category": category, // Kategori kondisi (untuk card)
     "color": color, // Warna kategori
     "recommendation": recommendation, // Rekomendasi

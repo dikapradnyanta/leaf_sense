@@ -85,9 +85,6 @@ class _HomePageState extends State<HomePage> {
       final rule = getRecommendation(result['classId'] ?? 0, confidence);
 
       // Cek mounted sebelum menutup dialog
-      if (!mounted) return;
-      Navigator.pop(context); // Tutup Loading
-
       // Pindah ke Result Page
       if (!mounted) return;
       Navigator.push(
@@ -96,10 +93,11 @@ class _HomePageState extends State<HomePage> {
           builder: (context) => ResultPage(
             imagePath: image.path,
             diseaseName: rule['diseaseName'] ?? 'Unknown',
+            diseaseNameId: rule['diseaseNameId'] ?? 'Tidak Diketahui',
             category: rule['category'] ?? 'Unknown',
             confidence: confidence,
             recommendation: rule['recommendation'] ?? '',
-            colorValue: rule['color'] ?? 0xFF9E9E9E,
+            colorValue: rule['color'] ?? 0xFF9E9E9E, // ✅ TAMBAHKAN INI
           ),
         ),
       ).then((_) {

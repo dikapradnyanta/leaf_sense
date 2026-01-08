@@ -111,6 +111,7 @@ class _CameraPageState extends State<CameraPage> with SingleTickerProviderStateM
           builder: (context) => ResultPage(
             imagePath: path,
             diseaseName: rule['diseaseName'] ?? 'Unknown',
+            diseaseNameId: rule['diseaseNameId'] ?? 'Tidak Diketahui', // ✅ TAMBAHKAN INI
             category: rule['category'] ?? 'Unknown',
             confidence: confidence,
             recommendation: rule['recommendation'] ?? '',
