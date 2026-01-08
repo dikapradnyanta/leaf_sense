@@ -2,8 +2,10 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:vibration/vibration.dart';
 import '../classifier/classifier.dart';
 import '../classifier/rule.dart';
+import '../services/settings_service.dart';
 import 'camera_service.dart';
 import 'result_page.dart';
 
@@ -16,8 +18,6 @@ class CameraPage extends StatefulWidget {
 
 class _CameraPageState extends State<CameraPage> with SingleTickerProviderStateMixin {
   CameraController? _controller;
-  // HAPUS: _initializeControllerFuture karena tidak digunakan
-
   final classifier = PlantDiseaseClassifier();
 
   // Animasi Scanner
@@ -57,7 +57,6 @@ class _CameraPageState extends State<CameraPage> with SingleTickerProviderStateM
           : ImageFormatGroup.bgra8888,
     );
 
-    // FIX: Langsung await initialize() tanpa menyimpannya ke variabel future yang tidak dipakai
     try {
       await _controller!.initialize();
       if (mounted) setState(() {});
@@ -77,6 +76,18 @@ class _CameraPageState extends State<CameraPage> with SingleTickerProviderStateM
     _controller!.setFlashMode(_isFlashOn ? FlashMode.torch : FlashMode.off);
   }
 
+  // HAPTIC FEEDBACK (CEK SETTINGS DULU)
+  Future<void> _triggerHaptic() async {
+    try {
+      final isEnabled = await SettingsService.instance.getHapticFeedback();
+      if (isEnabled && await Vibration.hasVibrator() == true) {
+        await Vibration.vibrate(duration: 200);
+      }
+    } catch (e) {
+      debugPrint("Haptic error: $e");
+    }
+  }
+
   Future<void> _processImage(String path) async {
     if (!_isModelLoaded) return;
     setState(() => _isProcessing = true);
@@ -84,8 +95,13 @@ class _CameraPageState extends State<CameraPage> with SingleTickerProviderStateM
     try {
       final imageFile = File(path);
       final result = classifier.predict(imageFile);
-      final rule = getRecommendation(result['classId'] ?? 0);
       final confidence = (result['confidence'] ?? 0.0) * 100;
+
+      // Get recommendation dengan sistem baru
+      final rule = getRecommendation(result['classId'] ?? 0, confidence);
+
+      // TRIGGER HAPTIC FEEDBACK (jika sukses)
+      await _triggerHaptic();
 
       if (!mounted) return;
 
@@ -94,9 +110,11 @@ class _CameraPageState extends State<CameraPage> with SingleTickerProviderStateM
         MaterialPageRoute(
           builder: (context) => ResultPage(
             imagePath: path,
-            diseaseLabel: rule['label'] ?? 'Unknown',
+            diseaseName: rule['diseaseName'] ?? 'Unknown',
+            category: rule['category'] ?? 'Unknown',
             confidence: confidence,
             recommendation: rule['recommendation'] ?? '',
+            colorValue: rule['color'] ?? 0xFF9E9E9E,
           ),
         ),
       );
@@ -134,6 +152,7 @@ class _CameraPageState extends State<CameraPage> with SingleTickerProviderStateM
   void dispose() {
     _controller?.dispose();
     _animController.dispose();
+    classifier.dispose();
     super.dispose();
   }
 
@@ -213,8 +232,6 @@ class _CameraPageState extends State<CameraPage> with SingleTickerProviderStateM
                             right: 0,
                             child: Container(
                               height: 2,
-                              // FIX: boxShadow dipindahkan ke dalam BoxDecoration
-                              // FIX: withOpacity diganti dengan withValues
                               decoration: BoxDecoration(
                                 color: _isProcessing
                                     ? Colors.green
@@ -313,7 +330,8 @@ class _CameraPageState extends State<CameraPage> with SingleTickerProviderStateM
                           child: _isProcessing
                               ? const Padding(
                             padding: EdgeInsets.all(16.0),
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2),
                           )
                               : const Icon(Icons.camera_alt, color: Colors.white, size: 30),
                         ),

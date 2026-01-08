@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'camera/camera_page.dart';
-import 'Home/home_page.dart';
 import 'camera/camera_service.dart';
+import 'camera/camera_page.dart';
+import 'Home/home_page.dart';  // 👈 UBAH INI (dari 'Home/home_page.dart' jadi 'pages/home_page.dart')
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

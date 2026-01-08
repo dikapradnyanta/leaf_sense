@@ -4,9 +4,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import '../camera/camera_page.dart';
 import '../camera/result_page.dart';
-import 'settings_page.dart';
+import '../Home/settings_page.dart';
+import '../Home/history_page.dart';
 import '../classifier/classifier.dart';
 import '../classifier/rule.dart';
+import '../database/database_helper.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -22,14 +24,36 @@ class _HomePageState extends State<HomePage> {
   // Classifier untuk fitur Galeri Langsung
   final classifier = PlantDiseaseClassifier();
 
+  // Counter riwayat
+  int _historyCount = 0;
+
   @override
   void initState() {
     super.initState();
     _loadModel();
+    _loadHistoryCount();
   }
 
   Future<void> _loadModel() async {
     await classifier.loadModel();
+  }
+
+  Future<void> _loadHistoryCount() async {
+    try {
+      final count = await DatabaseHelper.instance.getHistoryCount();
+      if (mounted) {
+        setState(() => _historyCount = count);
+      }
+    } catch (e) {
+      debugPrint("Error loading history count: $e");
+    }
+  }
+
+  // Refresh count setiap kali halaman muncul
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadHistoryCount();
   }
 
   // LOGIC: Proses Gambar dari Galeri Langsung
@@ -55,8 +79,10 @@ class _HomePageState extends State<HomePage> {
       // Prediksi (Berat)
       final imageFile = File(image.path);
       final result = classifier.predict(imageFile);
-      final rule = getRecommendation(result['classId'] ?? 0);
       final confidence = (result['confidence'] ?? 0.0) * 100;
+
+      // Get recommendation dengan sistem baru
+      final rule = getRecommendation(result['classId'] ?? 0, confidence);
 
       // Cek mounted sebelum menutup dialog
       if (!mounted) return;
@@ -69,12 +95,17 @@ class _HomePageState extends State<HomePage> {
         MaterialPageRoute(
           builder: (context) => ResultPage(
             imagePath: image.path,
-            diseaseLabel: rule['label'] ?? 'Unknown',
+            diseaseName: rule['diseaseName'] ?? 'Unknown',
+            category: rule['category'] ?? 'Unknown',
             confidence: confidence,
             recommendation: rule['recommendation'] ?? '',
+            colorValue: rule['color'] ?? 0xFF9E9E9E,
           ),
         ),
-      );
+      ).then((_) {
+        // Refresh history count setelah kembali dari result page
+        _loadHistoryCount();
+      });
     } catch (e) {
       // Error Handling
       if (mounted) {
@@ -224,7 +255,10 @@ class _HomePageState extends State<HomePage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (context) => const CameraPage()),
-                        );
+                        ).then((_) {
+                          // Refresh history count setelah kembali
+                          _loadHistoryCount();
+                        });
                       },
                     ),
                   ),
@@ -244,47 +278,60 @@ class _HomePageState extends State<HomePage> {
 
               const SizedBox(height: 30),
 
-              // 4. HISTORY / INFO SECTION
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
+              // 4. HISTORY SECTION (SEKARANG BISA DIKLIK!)
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HistoryPage()),
+                  ).then((_) {
+                    // Refresh count setelah kembali dari history page
+                    _loadHistoryCount();
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.history, color: Color(0xFF4CAF50)),
                       ),
-                      child: const Icon(Icons.history_edu, color: Colors.grey),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Riwayat Diagnosis",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Riwayat Diagnosis",
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                              ),
                             ),
-                          ),
-                          Text(
-                            "Belum ada riwayat tersimpan",
-                            style: TextStyle(
-                              color: Colors.grey[500],
-                              fontSize: 12,
+                            Text(
+                              _historyCount > 0
+                                  ? "$_historyCount riwayat tersimpan"
+                                  : "Belum ada riwayat tersimpan",
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 12,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                  ],
+                      const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -326,7 +373,9 @@ class _HomePageState extends State<HomePage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isPrimary ? Colors.white.withValues(alpha: 0.2) : color.withValues(alpha: 0.1),
+                color: isPrimary
+                    ? Colors.white.withValues(alpha: 0.2)
+                    : color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(

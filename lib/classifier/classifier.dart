@@ -12,7 +12,6 @@ class PlantDiseaseClassifier {
   late List<int> _inputShape;
   late List<int> _outputShape;
   late TensorType _inputType;
-  late TensorType _outputType;
 
   Future<void> loadModel() async {
     try {
@@ -23,7 +22,6 @@ class PlantDiseaseClassifier {
       _inputShape = _interpreter!.getInputTensor(0).shape;
       _outputShape = _interpreter!.getOutputTensor(0).shape;
       _inputType = _interpreter!.getInputTensor(0).type;
-      _outputType = _interpreter!.getOutputTensor(0).type;
 
       _isLoaded = true;
       debugPrint("✅ Model loaded successfully");

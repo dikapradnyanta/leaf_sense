@@ -36,10 +36,13 @@ dependencies:
   flutter_svg: ^2.0.9
   image_picker: ^1.0.7
   share_plus: ^10.0.0
-  path_provider: ^2.1.2
-
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
+    # NEW: Tambahkan dependencies ini
+  sqflite: ^2.3.0           # Database untuk riwayat
+  path: ^1.9.0              # Helper path database
+  intl: ^0.19.0             # Format tanggal
+  shared_preferences: ^2.2.2 # Settings storage
+  vibration: ^1.8.4         # Haptic feedback
+  url_launcher: ^6.2.2      # Open links di disclaimer
   cupertino_icons: ^1.0.8
 
 dev_dependencies:

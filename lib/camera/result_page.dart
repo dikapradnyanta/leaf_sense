@@ -7,19 +7,26 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'camera_page.dart';
+import '../database/database_helper.dart';
+import '../database/history_model.dart';
+import '../services/settings_service.dart';
 
 class ResultPage extends StatefulWidget {
   final String imagePath;
-  final String diseaseLabel;
+  final String diseaseName; // Nama penyakit (Early Blight, Bacterial Spot, dll)
+  final String category; // Kategori kondisi (Healthy, Bacterial Infection, dll)
   final double confidence;
   final String recommendation;
+  final int colorValue; // Warna dari categoryColors
 
   const ResultPage({
     super.key,
     required this.imagePath,
-    required this.diseaseLabel,
+    required this.diseaseName,
+    required this.category,
     required this.confidence,
     required this.recommendation,
+    required this.colorValue,
   });
 
   @override
@@ -30,20 +37,37 @@ class _ResultPageState extends State<ResultPage> {
   final GlobalKey _globalKey = GlobalKey();
   bool _isSharing = false;
 
-  Color _getStatusColor(String label) {
-    switch (label.toLowerCase()) {
-      case 'healthy':
-        return const Color(0xFF4CAF50); // Hijau
-      case 'penyakit ringan':
-        return const Color(0xFFFF9800); // Oranye
-      case 'penyakit menular':
-        return const Color(0xFFF44336); // Merah
-      case 'penyakit berat':
-        return const Color(0xFFD32F2F); // Merah Tua
-      case 'tidak dikenali':
-        return Colors.grey;             // Abu-abu (Unknown)
-      default:
-        return Colors.grey;
+  @override
+  void initState() {
+    super.initState();
+    _saveToHistory();
+  }
+
+  // AUTO-SAVE KE DATABASE (CEK SETTINGS DULU)
+  Future<void> _saveToHistory() async {
+    try {
+      // Cek apakah user mengaktifkan "Simpan Riwayat"
+      final shouldSave = await SettingsService.instance.getSaveHistory();
+
+      if (!shouldSave) {
+        debugPrint("⏭️ Auto-save disabled by user");
+        return;
+      }
+
+      final history = DiagnosisHistory(
+        imagePath: widget.imagePath,
+        diseaseName: widget.diseaseName,
+        category: widget.category,
+        confidence: widget.confidence,
+        recommendation: widget.recommendation,
+        colorValue: widget.colorValue,
+        timestamp: DateTime.now(),
+      );
+
+      await DatabaseHelper.instance.insertHistory(history);
+      debugPrint("💾 History auto-saved successfully");
+    } catch (e) {
+      debugPrint("❌ Failed to save history: $e");
     }
   }
 
@@ -78,9 +102,9 @@ class _ResultPageState extends State<ResultPage> {
       // 4. Share File
       await Share.shareXFiles(
         [xFile],
-        text: 'Cek tanaman saya! Terdeteksi: ${widget.diseaseLabel} dengan akurasi ${widget.confidence.toStringAsFixed(1)}% via Leaf Sense App 🌱',
+        text:
+        'Cek tanaman saya! Terdeteksi: ${widget.category} dengan akurasi ${widget.confidence.toStringAsFixed(1)}% via Leaf Sense App 🌱',
       );
-
     } catch (e) {
       debugPrint("Error sharing: $e");
       if (mounted) {
@@ -97,7 +121,7 @@ class _ResultPageState extends State<ResultPage> {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = _getStatusColor(widget.diseaseLabel);
+    final statusColor = Color(widget.colorValue);
 
     return Scaffold(
       appBar: AppBar(
@@ -177,9 +201,9 @@ class _ResultPageState extends State<ResultPage> {
 
                               const SizedBox(height: 16),
 
-                              // NAMA PENYAKIT
+                              // KATEGORI KONDISI (5 kategori sederhana untuk UI)
                               Text(
-                                widget.diseaseLabel,
+                                widget.category,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 32,
@@ -218,10 +242,7 @@ class _ResultPageState extends State<ResultPage> {
                                   ),
                                   _buildStatItem(
                                     "CONDITION",
-                                    // LOGIKA 3 KONDISI: Sehat / Unknown / Terinfeksi
-                                    widget.diseaseLabel == "Healthy"
-                                        ? "Sehat"
-                                        : (widget.diseaseLabel == "Tidak Dikenali" ? "Unknown" : "Terinfeksi"),
+                                    widget.category,
                                     statusColor,
                                   ),
                                 ],
@@ -240,10 +261,55 @@ class _ResultPageState extends State<ResultPage> {
 
               const SizedBox(height: 30),
 
+              // INFO DETAIL PENYAKIT (Hanya muncul jika bukan Unknown)
+              if (widget.diseaseName != "Unknown")
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.grey[700], size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Terdeteksi:",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              widget.diseaseName,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              if (widget.diseaseName != "Unknown") const SizedBox(height: 16),
+
               // REKOMENDASI PERAWATAN
-              const Text(
-                'Rekomendasi Perawatan',
-                style: TextStyle(
+              Text(
+                widget.confidence < 50.0
+                    ? 'Rekomendasi Umum (Confidence Rendah)'
+                    : 'Rekomendasi Penanganan',
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF2E7D32),
@@ -260,7 +326,12 @@ class _ResultPageState extends State<ResultPage> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.medical_services_outlined, color: Color(0xFF4CAF50)),
+                    Icon(
+                      widget.confidence < 50.0
+                          ? Icons.info_outlined
+                          : Icons.medical_services_outlined,
+                      color: const Color(0xFF4CAF50),
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -275,6 +346,34 @@ class _ResultPageState extends State<ResultPage> {
                   ],
                 ),
               ),
+
+              // Tambahan warning jika confidence rendah
+              if (widget.confidence < 50.0) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.orange[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: Colors.orange[700], size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          "Tingkat keyakinan di bawah 50%. Untuk diagnosis akurat, konsultasikan dengan ahli pertanian.",
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.orange[900],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 30),
 
@@ -296,7 +395,8 @@ class _ResultPageState extends State<ResultPage> {
                           ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.green),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.green),
                       )
                           : const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
